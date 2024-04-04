@@ -25,6 +25,7 @@ from distutils.version import LooseVersion
 
 # URL from which to download the latest COCO trained weights
 COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5"
+IMAGENET_MODEL_URL = 'https://github.com/fchollet/deep-learning-models/releases/download/v0.2/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5'
 
 
 ############################################################
@@ -529,8 +530,8 @@ def minimize_mask(bbox, mask, mini_shape):
         if m.size == 0:
             raise Exception("Invalid bounding box with area of zero")
         # Resize with bilinear interpolation
-        m = resize(m, mini_shape)
-        mini_mask[:, :, i] = np.around(m).astype(np.bool)
+        m = resize(m, mini_shape, order=0)
+        mini_mask[:, :, i] = np.around(m).astype(bool)
     return mini_mask
 
 
@@ -547,8 +548,8 @@ def expand_mask(bbox, mini_mask, image_shape):
         h = y2 - y1
         w = x2 - x1
         # Resize with bilinear interpolation
-        m = resize(m, (h, w))
-        mask[y1:y2, x1:x2, i] = np.around(m).astype(np.bool)
+        m = resize(m, (h, w), order=0)
+        mask[y1:y2, x1:x2, i] = np.around(m).astype(bool)
     return mask
 
 
@@ -567,11 +568,11 @@ def unmold_mask(mask, bbox, image_shape):
     """
     threshold = 0.5
     y1, x1, y2, x2 = bbox
-    mask = resize(mask, (y2 - y1, x2 - x1))
-    mask = np.where(mask >= threshold, 1, 0).astype(np.bool)
+    mask = resize(mask, (y2 - y1, x2 - x1), order=0)
+    mask = np.where(mask >= threshold, 1, 0).astype(bool)
 
     # Put the mask in the right location.
-    full_mask = np.zeros(image_shape[:2], dtype=np.bool)
+    full_mask = np.zeros(image_shape[:2], dtype=bool)
     full_mask[y1:y2, x1:x2] = mask
     return full_mask
 
@@ -845,6 +846,18 @@ def download_trained_weights(coco_model_path, verbose=1):
     if verbose > 0:
         print("Downloading pretrained model to " + coco_model_path + " ...")
     with urllib.request.urlopen(COCO_MODEL_URL) as resp, open(coco_model_path, 'wb') as out:
+        shutil.copyfileobj(resp, out)
+    if verbose > 0:
+        print("... done downloading pretrained model!")
+
+def download_imagenet_trained_weights(imagenet_model_path, verbose=1):
+    """Download COCO trained weights from Releases.
+
+    coco_model_path: local path of COCO trained weights
+    """
+    if verbose > 0:
+        print("Downloading pretrained model to " + imagenet_model_path + " ...")
+    with urllib.request.urlopen(IMAGENET_MODEL_URL) as resp, open(imagenet_model_path, 'wb') as out:
         shutil.copyfileobj(resp, out)
     if verbose > 0:
         print("... done downloading pretrained model!")
